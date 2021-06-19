@@ -12,14 +12,39 @@ exports.getAllTours = async (req, res) => {
 
     excludedFields.forEach((el) => delete queryObj[el]);
 
-    const query =  Tour.find(queryObj);
+    // advance filtering
+
+    let queryString = JSON.stringify(queryObj);
+    queryString = queryString.replace(
+      /\b(gte|gt|lte|lt)\b/g,
+      (match) => `$${match}`
+    );
+
+    let query = Tour.find(JSON.parse(queryString));
+
+    // Sorting
+    if (req.query.sort) {
+      const sortBy = req.query.sort.split(',').join(' ');
+      query = query.sort(sortBy);
+    } else {
+      query = query.sort('-createdAt');
+    }
+
+    // field limiting
+
+    if (req.query.fields) {
+      const fields = req.query.fields.split(',').join(' ');
+
+      query = query.select(fields);
+    }else{
+      query = query.select('')
+    }
 
     // const tours = await Tour.find()
     // .where('duration')
     // .equals(5)
     // .where('difficulty')
     // .equals('easy');
-
 
     //Execute Query
     const tours = await query;
